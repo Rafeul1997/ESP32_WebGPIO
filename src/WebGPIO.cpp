@@ -7,6 +7,14 @@ WebGPIO::WebGPIO(const char* ssid, const char* password)
   instance = this;
 }
 
+// 🌐 Set static IP
+void WebGPIO::setStaticIP(IPAddress local_IP, IPAddress gateway, IPAddress subnet) {
+  _local_IP = local_IP;
+  _gateway = gateway;
+  _subnet = subnet;
+  _useStatic = true;
+}
+
 void WebGPIO::begin(int pins[], int count) {
   _pins = pins;
   _count = count;
@@ -17,10 +25,24 @@ void WebGPIO::begin(int pins[], int count) {
     _state[i] = false;
   }
 
+  // 🌐 Apply static IP if enabled
+  if (_useStatic) {
+    if (!WiFi.config(_local_IP, _gateway, _subnet)) {
+      Serial.println("Static IP Failed!");
+    }
+  }
+
   WiFi.begin(_ssid, _password);
+
+  Serial.print("Connecting...");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
+    Serial.print(".");
   }
+
+  Serial.println("\nConnected!");
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
 
   server.on("/", []() { instance->handleRoot(); });
   server.on("/toggle", []() { instance->handleToggle(); });
